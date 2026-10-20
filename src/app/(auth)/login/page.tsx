@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: "Sign in · AI Writing Tool",
 };
 
-export default function LoginPage({ searchParams }: PageProps<"/login">) {
+export default function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
@@ -31,7 +31,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Suspense>
-            <LoginMessage searchParams={searchParams} />
+            <LoginMessage />
           </Suspense>
 
           <form action={signInWithEmail} className="flex flex-col gap-2">
