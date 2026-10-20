@@ -1,0 +1,5 @@
+-- handle_new_user() is a SECURITY DEFINER trigger function and must not be
+-- callable through the REST API (/rest/v1/rpc/handle_new_user).
+-- Triggers still fire regardless of EXECUTE privileges.
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;

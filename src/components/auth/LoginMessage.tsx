@@ -1,12 +1,14 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
 import { LOGIN_ERRORS, isLoginError } from "@/lib/schemas/auth";
 
-type LoginMessageProps = {
-  searchParams: PageProps<"/login">["searchParams"];
-};
-
-// Reads searchParams, so it must render inside a <Suspense> boundary.
-export async function LoginMessage({ searchParams }: LoginMessageProps) {
-  const { error, sent } = await searchParams;
+// Reads search params on the client so the login page stays fully static.
+// Uses useSearchParams, so it must render inside a <Suspense> boundary.
+export function LoginMessage() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   if (isLoginError(error)) {
     return (
@@ -16,7 +18,7 @@ export async function LoginMessage({ searchParams }: LoginMessageProps) {
     );
   }
 
-  if (sent === "1") {
+  if (searchParams.get("sent") === "1") {
     return (
       <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm">
         Check your inbox for a sign-in link.
