@@ -1,8 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { OAUTH_FLOW_COOKIE, OAUTH_FLOW_COOKIE_OPTIONS } from "@/lib/auth-flow";
 import { emailSignInSchema, type LoginError } from "@/lib/schemas/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +37,8 @@ export async function signInWithEmail(formData: FormData) {
     loginRedirect("email_failed");
   }
 
+  // A magic link replaces any unfinished Google attempt.
+  (await cookies()).delete({ name: OAUTH_FLOW_COOKIE, path: OAUTH_FLOW_COOKIE_OPTIONS.path });
   redirect("/login?sent=1");
 }
 
@@ -50,5 +53,6 @@ export async function signInWithGoogle() {
     loginRedirect("oauth_failed");
   }
 
+  (await cookies()).set(OAUTH_FLOW_COOKIE, "1", OAUTH_FLOW_COOKIE_OPTIONS);
   redirect(data.url);
 }
