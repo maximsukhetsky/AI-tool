@@ -90,6 +90,7 @@ Required env (`.env.local`, never commit):
 - **Language**: code, identifiers, comments and commit messages in English.
 - **TypeScript**: `strict`, no `any`; infer types from Zod (`z.infer`) and from generated Supabase types.
 - **Components**: Server Components by default; add `"use client"` only where state, effects or browser APIs are needed. One component per file, PascalCase filenames for components and kebab-case for everything else.
+- **React imports**: import React APIs and types by name (`import { Suspense, useState, type ComponentProps } from "react"`); never use the `React.` namespace or `import * as React` / `import React`. Exception: generated `src/components/ui/*` stays as shadcn writes it.
 - **Imports**: use the `@/` alias for absolute imports; no deep relative paths (`../../..`).
 - **Styling**: Tailwind utility classes only; compose with `cn()` from `lib/utils`; no CSS modules or inline styles.
 - **Modes**: a single `Mode` union/enum (`"improve" | "email" | "linkedin" | "technical" | "translate" | "tone"`) in `lib/schemas`, used everywhere, with no string literals scattered around.
