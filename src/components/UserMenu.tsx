@@ -9,7 +9,7 @@ export async function UserMenu() {
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <span className="truncate text-sm text-muted-foreground">{user.email}</span>
+      <span className="hidden truncate text-sm text-muted-foreground sm:block">{user.email}</span>
       <form action={signOut}>
         <SubmitButton variant="ghost" size="sm" pendingLabel="Signing out…">
           Sign out
