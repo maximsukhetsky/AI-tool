@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(pnpm run:*)",
+      "Read",
+      "Edit"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Bash(cat .env:*)",
+      "Bash(rm -rf:*)",
+      "Bash(pnpm add:*)"
+    ],
+    "ask": ["Bash(git push:*)", "WebFetch"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && OUT=$(pnpm run typecheck 2>&1) || { echo \"TypeScript errors, fix them:\" >&2; echo \"$OUT\" | tail -30 >&2; exit 2; }"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && echo '=== Git Status ===' && git status -sb && echo '=== Recent commits ===' && git log --oneline -5"
+          }
+        ]
+      }
+    ]
+  }
+}
