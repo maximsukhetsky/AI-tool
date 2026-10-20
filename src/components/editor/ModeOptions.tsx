@@ -1,6 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { TargetLanguageInput } from "@/components/editor/TargetLanguageInput";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -9,21 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAX_TARGET_LANGUAGE_LENGTH } from "@/lib/schemas/generate";
 import { TONE_LABELS, TONES, toneSchema, type Mode, type Tone } from "@/lib/schemas/mode";
-
-const LANGUAGE_SUGGESTIONS = [
-  "English",
-  "Ukrainian",
-  "Spanish",
-  "German",
-  "French",
-  "Polish",
-  "Italian",
-  "Portuguese",
-  "Japanese",
-  "Chinese (Simplified)",
-];
 
 const TONE_ITEMS = TONES.map((tone) => ({ value: tone, label: TONE_LABELS[tone] }));
 
@@ -48,21 +34,12 @@ export function ModeOptions({
     return (
       <div className="flex max-w-xs flex-col gap-2">
         <Label htmlFor="target-language">Target language</Label>
-        <Input
+        <TargetLanguageInput
           id="target-language"
-          list="target-language-suggestions"
           value={targetLanguage}
-          onChange={(event) => onTargetLanguageChange(event.target.value)}
-          maxLength={MAX_TARGET_LANGUAGE_LENGTH}
-          placeholder="e.g. Spanish"
+          onValueChange={onTargetLanguageChange}
           disabled={disabled}
-          required
         />
-        <datalist id="target-language-suggestions">
-          {LANGUAGE_SUGGESTIONS.map((language) => (
-            <option key={language} value={language} />
-          ))}
-        </datalist>
       </div>
     );
   }
