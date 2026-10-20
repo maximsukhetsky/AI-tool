@@ -1,6 +1,6 @@
 // PLACEHOLDER: hand-written to match supabase/migrations/20261020151327_initial_schema.sql.
 // Regenerate after `supabase db push`:
-//   pnpm supabase gen types typescript --linked > types/database.ts
+//   pnpm supabase gen types typescript --linked > src/types/database.ts
 
 export type Json =
   | string

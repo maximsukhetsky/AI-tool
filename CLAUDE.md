@@ -12,26 +12,29 @@ AI writing tool: the user pastes text, picks a mode (improve / email / linkedin 
 - **Tests**: none yet (see Rules)
 
 ## Architecture
+All application code lives in `src/`; the `@/` alias maps to `src/` (so `lib/...` below means `src/lib/...`). Config, `supabase/` and `docs/` stay in the repo root.
 ```
-app/
-  (auth)/login, (auth)/callback     # Supabase Auth pages + OAuth callback
-  (app)/page.tsx                    # Main editor: input, mode picker, streamed output
-  (app)/history/                    # Past generations
-  (app)/settings/                   # User preferences & saved custom prompts
-  api/generate/route.ts             # POST → SSE stream from Anthropic
-lib/
-  anthropic/client.ts               # Singleton SDK client (server-only)
-  prompts/                          # One file per mode: system prompt builder
-  prompts/index.ts                  # Mode registry: Mode → { label, buildSystemPrompt, maxTokens }
-  supabase/server.ts, client.ts, proxy.ts
-  schemas/                          # Zod schemas shared by client & server
-  usage.ts                          # Quota checks and increments
-components/
-  ui/                               # shadcn/ui (generated, do not hand-edit)
-  editor/                           # ModePicker, InputArea, OutputStream, etc.
-proxy.ts                            # Supabase session refresh + route protection
+src/
+  app/
+    (auth)/login, (auth)/callback   # Supabase Auth pages + OAuth callback
+    (app)/page.tsx                  # Main editor: input, mode picker, streamed output
+    (app)/history/                  # Past generations
+    (app)/settings/                 # User preferences & saved custom prompts
+    api/generate/route.ts           # POST → SSE stream from Anthropic
+  lib/
+    anthropic/client.ts             # Singleton SDK client (server-only)
+    prompts/                        # One file per mode: system prompt builder
+    prompts/index.ts                # Mode registry: Mode → { label, buildSystemPrompt, maxTokens }
+    supabase/server.ts, client.ts, proxy.ts
+    schemas/                        # Zod schemas shared by client & server
+    usage.ts                        # Quota checks and increments
+  components/
+    ui/                             # shadcn/ui (generated, do not hand-edit)
+    editor/                         # ModePicker, InputArea, OutputStream, etc.
+  types/database.ts                 # Generated Supabase types
+  proxy.ts                          # Supabase session refresh + route protection
 supabase/migrations/                # SQL migrations (source of truth for schema)
-types/database.ts                   # Generated Supabase types
+docs/prd/                           # Product requirements
 ```
 
 ### Generation flow
@@ -61,7 +64,7 @@ pnpm typecheck               # next typegen && tsc --noEmit
 pnpm dlx shadcn@latest add <component>        # add a shadcn/ui component
 pnpm supabase migration new <name>            # create a migration
 pnpm supabase db push                         # apply migrations to the linked cloud project
-pnpm supabase gen types typescript --linked > types/database.ts   # regenerate DB types
+pnpm supabase gen types typescript --linked > src/types/database.ts   # regenerate DB types
 ```
 
 Supabase is a **cloud project** (no local Docker). One-time setup, run by the user because it's interactive: `pnpm supabase login`, then `pnpm supabase link --project-ref <ref>`.
@@ -75,11 +78,11 @@ Required env (`.env.local`, never commit):
 - **Always validate input with Zod** on the server, even if the client already validated it. Enforce a max input length.
 - **Auth and quota checks come before calling Anthropic**, every time.
 - **RLS on every table.** Use the service-role client only where it is unavoidable (for example usage increments), and never with user-controlled filters.
-- **Schema changes only through migrations** in `supabase/migrations/`, then regenerate `types/database.ts`. Never edit the DB through the dashboard.
+- **Schema changes only through migrations** in `supabase/migrations/`, then regenerate `src/types/database.ts`. Never edit the DB through the dashboard.
 - **Prompts live in `lib/prompts/`**, never inline in route handlers or components. Adding a mode means adding a prompt file, registering it in the mode registry, and adding it to the Zod `Mode` enum.
 - **Treat user text as data, not instructions.** Wrap it in clear delimiters (for example `<user_text>`) in the user message, and keep mode instructions in the system prompt.
 - **Streaming must handle errors and aborts**: send an `error` SSE event instead of throwing mid-stream, stop the Anthropic stream when the client disconnects (`request.signal`), and save nothing for aborted requests unless they produced partial output.
-- Don't hand-edit `components/ui/*` (shadcn-generated) or `types/database.ts` (generated).
+- Don't hand-edit `src/components/ui/*` (shadcn-generated) or `src/types/database.ts` (generated).
 - No tests yet: before finishing a task, `pnpm lint`, `pnpm typecheck` and `pnpm build` must pass, and verify UI changes manually in `pnpm dev`.
 - Don't add new dependencies without a clear reason; prefer what's already in the stack.
 
