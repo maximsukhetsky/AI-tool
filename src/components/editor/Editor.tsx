@@ -64,6 +64,19 @@ export function Editor({ initialRemaining, initialDraft, customPrompts }: Editor
   } = useGeneration(initialRemaining);
 
   const streaming = status === "streaming";
+
+  // With cacheComponents the editor stays mounted (hidden) while the user is on /settings, so
+  // useState ignores the new defaults it receives after a save. Apply them when they change,
+  // keeping the text the user typed; wait until a running generation finishes.
+  const draftOptionsKey = JSON.stringify([initialDraft?.mode, initialDraft?.targetLanguage, initialDraft?.targetTone]);
+  const [appliedOptionsKey, setAppliedOptionsKey] = useState(draftOptionsKey);
+  if (draftOptionsKey !== appliedOptionsKey && !streaming) {
+    setAppliedOptionsKey(draftOptionsKey);
+    setMode(initialDraft?.mode ?? "improve");
+    setTargetLanguage(initialDraft?.targetLanguage ?? "");
+    setTargetTone(initialDraft?.targetTone ?? null);
+    setCustomPromptId(null);
+  }
   // Computed once per finished generation, not on every keystroke.
   const changeLevel = useMemo(() => {
     if (status !== "done" || truncated || !lastRequest) return null;
