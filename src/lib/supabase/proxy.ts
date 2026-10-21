@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import type { Database } from "@/types/database";
 
-const PUBLIC_PATHS = ["/login", "/callback"];
+const PUBLIC_PATHS = ["/login", "/callback", "/privacy"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { LoginMessage } from "@/components/auth/LoginMessage";
@@ -64,6 +65,14 @@ export default function LoginPage() {
               Continue with Google
             </SubmitButton>
           </form>
+
+          <p className="text-center text-xs text-muted-foreground">
+            By continuing, you agree to our{" "}
+            <Link href="/privacy" className="underline underline-offset-4">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </CardContent>
       </Card>
     </main>

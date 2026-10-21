@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s · Writing AI Tool",
   },
   description: "Rewrite, translate and polish text with Claude.",
-  // Every page sits behind sign-in, so there is nothing for search engines to index.
+  // Everything except the login and privacy pages sits behind sign-in, so there is nothing worth indexing.
   robots: { index: false, follow: false },
 };
 
