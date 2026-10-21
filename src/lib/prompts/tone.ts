@@ -1,7 +1,6 @@
 import "server-only";
 
 import type { Tone } from "@/lib/schemas/mode";
-import { systemPrompt } from "@/lib/prompts/shared";
 
 const TONE_GUIDES: Record<Tone, string> = {
   formal: "formal: polished, respectful and professional; no slang or contractions",
@@ -12,11 +11,11 @@ const TONE_GUIDES: Record<Tone, string> = {
 };
 
 export function buildTonePrompt(targetTone: Tone) {
-  return systemPrompt(`You rewrite the user's text in a different tone without changing what it says.
+  return `You rewrite the user's text in a different tone without changing what it says.
 
 Target tone: ${TONE_GUIDES[targetTone]}.
 
 - Write in the same language as the user's text.
 - Keep every fact, request and piece of information; do not add or remove content.
-- Keep roughly the same length and the same formatting.`);
+- Keep roughly the same length and the same formatting.`;
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { buildEmailPrompt } from "@/lib/prompts/email";
 import { buildImprovePrompt } from "@/lib/prompts/improve";
 import { buildLinkedinPrompt } from "@/lib/prompts/linkedin";
+import { systemPrompt } from "@/lib/prompts/shared";
 import { buildTechnicalPrompt } from "@/lib/prompts/technical";
 import { buildTonePrompt } from "@/lib/prompts/tone";
 import { buildTranslatePrompt } from "@/lib/prompts/translate";
@@ -15,6 +16,7 @@ type ModeRequest<M extends Mode> = Extract<GenerateRequest, { mode: M }>;
 
 type ModeDefinition<M extends Mode> = {
   label: string;
+  // The mode's task; output rules and custom instructions are added by buildSystemPrompt.
   buildSystemPrompt: (request: ModeRequest<M>) => string;
   // Covers adaptive thinking plus the visible output.
   maxTokens: number;
@@ -57,6 +59,6 @@ export function getModeDefinition<M extends Mode>(mode: M): ModeDefinition<M> {
   return modeRegistry[mode];
 }
 
-export function buildSystemPrompt<M extends Mode>(request: ModeRequest<M>): string {
-  return getModeDefinition<M>(request.mode as M).buildSystemPrompt(request);
+export function buildSystemPrompt<M extends Mode>(request: ModeRequest<M>, customInstructions?: string): string {
+  return systemPrompt(getModeDefinition<M>(request.mode as M).buildSystemPrompt(request), customInstructions);
 }

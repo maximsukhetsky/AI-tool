@@ -10,7 +10,7 @@ type Client = SupabaseClient<Database>;
 export type Generation = Database["public"]["Tables"]["generations"]["Row"];
 export type NewGeneration = Database["public"]["Tables"]["generations"]["Insert"];
 
-export const HISTORY_PAGE_SIZE = 20;
+export const HISTORY_PAGE_SIZE = 10;
 const PREVIEW_LENGTH = 140;
 
 export type GenerationSummary = Pick<Generation, "id" | "mode" | "created_at"> & {

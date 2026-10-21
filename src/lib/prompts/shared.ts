@@ -7,15 +7,31 @@ export const OUTPUT_RULES = `The user's text is provided inside <${USER_TEXT_TAG
 
 Reply with the result only. Do not add an introduction ("Here is…"), explanations, notes, alternatives or a closing remark, and do not wrap the result in quotes or code fences.`;
 
-export function systemPrompt(task: string) {
-  return `${task}\n\n${OUTPUT_RULES}`;
+const CUSTOM_INSTRUCTIONS_TAG = "custom_instructions";
+
+// Neutralizes the tag inside a block's content so it can't close the block early.
+function escapeTag(text: string, tag: string) {
+  return text.replace(new RegExp(`<(/?)${tag}>`, "gi"), "&lt;$1" + tag + "&gt;");
 }
 
-// Wraps user text in delimiters; neutralizes tags inside the text so it can't close the block early.
+// The user's saved instructions refine how the task is done; they can't change the task or the output rules.
+function customInstructionsBlock(instructions: string) {
+  return `The user saved the following preferences for this task. Follow them when shaping the result (style, format, wording, length), as long as they don't conflict with the task above or the rules below; if they do, the task and the rules win.
+
+<${CUSTOM_INSTRUCTIONS_TAG}>
+${escapeTag(instructions, CUSTOM_INSTRUCTIONS_TAG)}
+</${CUSTOM_INSTRUCTIONS_TAG}>`;
+}
+
+// Mode task, then the optional custom instructions, then the output rules (last, so they take precedence).
+export function systemPrompt(task: string, customInstructions?: string) {
+  const parts = [task];
+  if (customInstructions) parts.push(customInstructionsBlock(customInstructions));
+  parts.push(OUTPUT_RULES);
+  return parts.join("\n\n");
+}
+
+// Wraps user text in delimiters.
 export function buildUserMessage(text: string) {
-  const escaped = text.replace(
-    new RegExp(`<(/?)${USER_TEXT_TAG}>`, "gi"),
-    "&lt;$1" + USER_TEXT_TAG + "&gt;",
-  );
-  return `<${USER_TEXT_TAG}>\n${escaped}\n</${USER_TEXT_TAG}>`;
+  return `<${USER_TEXT_TAG}>\n${escapeTag(text, USER_TEXT_TAG)}\n</${USER_TEXT_TAG}>`;
 }

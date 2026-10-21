@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/", label: "Editor" },
   { href: "/history", label: "History" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -15,7 +16,7 @@ function isActive(pathname: string, href: string) {
 // `pathname` is unknown while prerendering; links then render without an active state.
 export function NavLinks({ pathname }: { pathname?: string }) {
   return (
-    <nav aria-label="Main" className="flex items-center gap-1">
+    <nav aria-label="Main" className="flex items-center gap-0.5 sm:gap-1">
       {NAV_ITEMS.map(({ href, label }) => {
         const active = pathname !== undefined && isActive(pathname, href);
         return (
@@ -24,7 +25,7 @@ export function NavLinks({ pathname }: { pathname?: string }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
+              "relative rounded-md px-2 py-1.5 sm:px-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
               active && "bg-muted font-medium text-foreground",
             )}
           >

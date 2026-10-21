@@ -3,6 +3,7 @@
 import { Sparkles, Square } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
+import { CustomPromptPicker } from "@/components/editor/CustomPromptPicker";
 import { InputArea } from "@/components/editor/InputArea";
 import { ModeOptions } from "@/components/editor/ModeOptions";
 import { ModePicker } from "@/components/editor/ModePicker";
@@ -10,6 +11,7 @@ import { OutputStream } from "@/components/editor/OutputStream";
 import { QuotaIndicator } from "@/components/editor/QuotaIndicator";
 import { Button } from "@/components/ui/button";
 import { useGeneration } from "@/hooks/use-generation";
+import type { CustomPrompt } from "@/lib/db/custom-prompts";
 import { DAILY_GENERATION_LIMIT, generateRequestSchema } from "@/lib/schemas/generate";
 import type { EditorDraft } from "@/lib/schemas/history";
 import { MINOR_CHANGE_NOTICE_MODES, type Mode, type Tone } from "@/lib/schemas/mode";
@@ -21,28 +23,33 @@ function toRequestDraft(
   text: string,
   targetLanguage: string,
   targetTone: Tone | null,
+  customPromptId: string | null,
 ): unknown {
+  const base = { mode, text, ...(customPromptId && { customPromptId }) };
   switch (mode) {
     case "translate":
-      return { mode, text, options: { targetLanguage } };
+      return { ...base, options: { targetLanguage } };
     case "tone":
-      return { mode, text, options: { targetTone } };
+      return { ...base, options: { targetTone } };
     default:
-      return { mode, text };
+      return base;
   }
 }
 
 type EditorProps = {
   initialRemaining: number;
-  // Prefilled state, e.g. when reopening a generation from history.
+  // Prefilled state: a generation reopened from history, or the user's saved defaults.
   initialDraft?: EditorDraft;
+  customPrompts: CustomPrompt[];
 };
 
-export function Editor({ initialRemaining, initialDraft }: EditorProps) {
+export function Editor({ initialRemaining, initialDraft, customPrompts }: EditorProps) {
   const [mode, setMode] = useState<Mode>(initialDraft?.mode ?? "improve");
   const [text, setText] = useState(initialDraft?.text ?? "");
   const [targetLanguage, setTargetLanguage] = useState(initialDraft?.targetLanguage ?? "");
   const [targetTone, setTargetTone] = useState<Tone | null>(initialDraft?.targetTone ?? null);
+  // Custom prompts belong to one mode, so switching modes clears the selection.
+  const [customPromptId, setCustomPromptId] = useState<string | null>(null);
   const {
     status,
     output,
@@ -57,6 +64,19 @@ export function Editor({ initialRemaining, initialDraft }: EditorProps) {
   } = useGeneration(initialRemaining);
 
   const streaming = status === "streaming";
+
+  // With cacheComponents the editor stays mounted (hidden) while the user is on /settings, so
+  // useState ignores the new defaults it receives after a save. Apply them when they change,
+  // keeping the text the user typed; wait until a running generation finishes.
+  const draftOptionsKey = JSON.stringify([initialDraft?.mode, initialDraft?.targetLanguage, initialDraft?.targetTone]);
+  const [appliedOptionsKey, setAppliedOptionsKey] = useState(draftOptionsKey);
+  if (draftOptionsKey !== appliedOptionsKey && !streaming) {
+    setAppliedOptionsKey(draftOptionsKey);
+    setMode(initialDraft?.mode ?? "improve");
+    setTargetLanguage(initialDraft?.targetLanguage ?? "");
+    setTargetTone(initialDraft?.targetTone ?? null);
+    setCustomPromptId(null);
+  }
   // Computed once per finished generation, not on every keystroke.
   const changeLevel = useMemo(() => {
     if (status !== "done" || truncated || !lastRequest) return null;
@@ -65,7 +85,7 @@ export function Editor({ initialRemaining, initialDraft }: EditorProps) {
   }, [status, truncated, lastRequest, output]);
   const quotaExhausted = remaining <= 0;
   const parsed = generateRequestSchema.safeParse(
-    toRequestDraft(mode, text, targetLanguage, targetTone),
+    toRequestDraft(mode, text, targetLanguage, targetTone, customPromptId),
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -76,13 +96,28 @@ export function Editor({ initialRemaining, initialDraft }: EditorProps) {
   return (
     <div className="grid gap-8 lg:grid-cols-2">
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <ModePicker value={mode} onChange={setMode} disabled={streaming} />
+        <ModePicker
+          value={mode}
+          onChange={(nextMode) => {
+            if (nextMode === mode) return;
+            setMode(nextMode);
+            setCustomPromptId(null);
+          }}
+          disabled={streaming}
+        />
         <ModeOptions
           mode={mode}
           targetLanguage={targetLanguage}
           onTargetLanguageChange={setTargetLanguage}
           targetTone={targetTone}
           onTargetToneChange={setTargetTone}
+          disabled={streaming}
+        />
+        <CustomPromptPicker
+          mode={mode}
+          prompts={customPrompts}
+          value={customPromptId}
+          onChange={setCustomPromptId}
           disabled={streaming}
         />
         <InputArea value={text} onChange={setText} disabled={streaming} />
@@ -94,9 +129,16 @@ export function Editor({ initialRemaining, initialDraft }: EditorProps) {
               Stop
             </Button>
           ) : (
-            <Button key="generate" type="submit" size="lg" disabled={!parsed.success || quotaExhausted}>
+            <Button
+              key="generate"
+              type="submit"
+              size="lg"
+              disabled={!parsed.success || quotaExhausted}
+              aria-keyshortcuts="Control+Enter Meta+Enter"
+            >
               <Sparkles />
               Generate
+              <kbd className="ml-1 hidden font-sans text-xs opacity-70 sm:inline">Ctrl/⌘ ↵</kbd>
             </Button>
           )}
           <QuotaIndicator remaining={remaining} limit={DAILY_GENERATION_LIMIT} />

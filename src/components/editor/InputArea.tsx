@@ -21,6 +21,13 @@ export function InputArea({ value, onChange, disabled }: InputAreaProps) {
         id="input-text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          // ⌘/Ctrl+Enter submits; the form's submit handler decides whether a generation can start.
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }
+        }}
         disabled={disabled}
         placeholder="Paste or type the text you want to work on…"
         aria-invalid={tooLong}

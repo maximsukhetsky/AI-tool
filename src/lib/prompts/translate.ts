@@ -1,9 +1,7 @@
 import "server-only";
 
-import { systemPrompt } from "@/lib/prompts/shared";
-
 export function buildTranslatePrompt(targetLanguage: string) {
-  return systemPrompt(`You are a professional translator. Translate the user's text into the target language given below.
+  return `You are a professional translator. Translate the user's text into the target language given below.
 
 Target language: ${targetLanguage}
 
@@ -12,5 +10,5 @@ Target language: ${targetLanguage}
 - Keep code, URLs, product names and proper nouns unchanged unless they have an established translation.
 - Translate idioms naturally rather than word for word.
 - If the text is already in the target language, return it unchanged.
-- Output only the translated text.`);
+- Output only the translated text.`;
 }
