@@ -25,9 +25,19 @@ type TargetLanguageInputProps = {
   value: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  // Off where an empty value is allowed (e.g. the default language in settings).
+  required?: boolean;
+  placeholder?: string;
 };
 
-export function TargetLanguageInput({ id, value, onValueChange, disabled }: TargetLanguageInputProps) {
+export function TargetLanguageInput({
+  id,
+  value,
+  onValueChange,
+  disabled,
+  required = true,
+  placeholder = "e.g. Spanish",
+}: TargetLanguageInputProps) {
   const selected = value.trim().toLowerCase();
   // Filter only while the user is typing; opening by click or after a pick shows the full list.
   const [isSearching, setIsSearching] = useState(false);
@@ -53,8 +63,8 @@ export function TargetLanguageInput({ id, value, onValueChange, disabled }: Targ
         id={id}
         render={<Input />}
         maxLength={MAX_TARGET_LANGUAGE_LENGTH}
-        placeholder="e.g. Spanish"
-        required
+        placeholder={placeholder}
+        required={required}
       />
       <Autocomplete.Portal>
         <Autocomplete.Positioner sideOffset={4} className="isolate z-50">

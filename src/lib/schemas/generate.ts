@@ -30,20 +30,26 @@ const targetLanguageSchema = z
   .min(1, "Choose a target language.")
   .max(MAX_TARGET_LANGUAGE_LENGTH);
 
+// Shared by every mode. `customPromptId`: one of the user's saved instructions for this mode.
+const baseFields = {
+  text: textSchema,
+  customPromptId: z.uuid().optional(),
+};
+
 // One branch per mode so mode-specific options are required exactly where they apply.
 export const generateRequestSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("improve"), text: textSchema }),
-  z.object({ mode: z.literal("email"), text: textSchema }),
-  z.object({ mode: z.literal("linkedin"), text: textSchema }),
-  z.object({ mode: z.literal("technical"), text: textSchema }),
+  z.object({ mode: z.literal("improve"), ...baseFields }),
+  z.object({ mode: z.literal("email"), ...baseFields }),
+  z.object({ mode: z.literal("linkedin"), ...baseFields }),
+  z.object({ mode: z.literal("technical"), ...baseFields }),
   z.object({
     mode: z.literal("translate"),
-    text: textSchema,
+    ...baseFields,
     options: z.object({ targetLanguage: targetLanguageSchema }),
   }),
   z.object({
     mode: z.literal("tone"),
-    text: textSchema,
+    ...baseFields,
     options: z.object({ targetTone: toneSchema }),
   }),
 ]);
@@ -54,6 +60,7 @@ export const ERROR_CODES = [
   "unauthorized",
   "invalid_json",
   "validation_error",
+  "invalid_custom_prompt",
   "quota_exceeded",
   "refused",
   "rate_limited",

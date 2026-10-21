@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
 import { getAnthropic, getAnthropicModel } from "@/lib/anthropic/client";
+import { getCustomPrompt } from "@/lib/db/custom-prompts";
 import { insertGeneration } from "@/lib/db/generations";
 import { buildSystemPrompt, buildUserMessage, getModeDefinition } from "@/lib/prompts";
 import {
@@ -54,6 +55,25 @@ export async function POST(request: Request) {
   }
   const generateRequest = parsed.data;
 
+  // Loaded through the RLS client, so another user's id resolves to null. Checked before the quota is touched.
+  let customInstructions: string | undefined;
+  if (generateRequest.customPromptId) {
+    let customPrompt;
+    try {
+      customPrompt = await getCustomPrompt(supabase, generateRequest.customPromptId);
+    } catch (error) {
+      console.error("[api/generate] custom prompt lookup failed", error);
+      return errorResponse(500, toApiError(error));
+    }
+    if (!customPrompt || customPrompt.mode !== generateRequest.mode) {
+      return errorResponse(400, {
+        code: "invalid_custom_prompt",
+        message: "The selected custom instruction doesn't exist. Choose another one.",
+      });
+    }
+    customInstructions = customPrompt.instructions;
+  }
+
   // Reserve a slot up front so parallel requests can't exceed the limit; released if nothing is produced.
   let reservation: QuotaReservation | null;
   try {
@@ -79,7 +99,7 @@ export async function POST(request: Request) {
       max_tokens: getModeDefinition(generateRequest.mode).maxTokens,
       // Low effort keeps time-to-first-token short; these are single-shot rewrites.
       output_config: { effort: "low" },
-      system: buildSystemPrompt(generateRequest),
+      system: buildSystemPrompt(generateRequest, customInstructions),
       messages: [{ role: "user", content: buildUserMessage(generateRequest.text) }],
     },
     { signal: request.signal },
