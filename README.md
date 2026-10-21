@@ -78,6 +78,8 @@ Connected to the GitHub repository: pushes to `main` deploy to production, PRs g
 
 Set these environment variables for **Production** and **Preview**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (sensitive), `ANTHROPIC_API_KEY` (sensitive), `ANTHROPIC_MODEL`.
 
+Web Analytics is wired up with `<Analytics />` in the root layout; enable it in **Project → Analytics**.
+
 ### Supabase Auth and Google OAuth
 
 In **Authentication → URL Configuration**:
