@@ -2,13 +2,18 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
 import { getAnthropic, getAnthropicModel } from "@/lib/anthropic/client";
+import { insertGeneration } from "@/lib/db/generations";
 import { buildSystemPrompt, buildUserMessage, getModeDefinition } from "@/lib/prompts";
 import {
+  DAILY_GENERATION_LIMIT,
   generateRequestSchema,
+  isEarlyStop,
   type ApiError,
   type GenerateEvent,
 } from "@/lib/schemas/generate";
+import { toGenerationOptions } from "@/lib/schemas/history";
 import { createClient } from "@/lib/supabase/server";
+import { consumeQuota, recordTokens, releaseQuota, type QuotaReservation } from "@/lib/usage";
 
 function errorResponse(status: number, error: ApiError) {
   return NextResponse.json({ error }, { status });
@@ -49,11 +54,28 @@ export async function POST(request: Request) {
   }
   const generateRequest = parsed.data;
 
-  // Session 3: check the daily quota (lib/usage.ts) here and return 429 before calling Anthropic.
+  // Reserve a slot up front so parallel requests can't exceed the limit; released if nothing is produced.
+  let reservation: QuotaReservation | null;
+  try {
+    reservation = await consumeQuota(user.id);
+  } catch (error) {
+    console.error("[api/generate] quota check failed", error);
+    return errorResponse(500, toApiError(error));
+  }
+  if (!reservation) {
+    return errorResponse(429, {
+      code: "quota_exceeded",
+      message: `You've used all ${DAILY_GENERATION_LIMIT} generations for today. The limit resets at 00:00 UTC.`,
+    });
+  }
+  const quota = reservation;
+  const userId = user.id;
+  const startedAt = Date.now();
 
+  const model = getAnthropicModel();
   const anthropicStream = getAnthropic().messages.stream(
     {
-      model: getAnthropicModel(),
+      model,
       max_tokens: getModeDefinition(generateRequest.mode).maxTokens,
       // Low effort keeps time-to-first-token short; these are single-shot rewrites.
       output_config: { effort: "low" },
@@ -62,6 +84,39 @@ export async function POST(request: Request) {
     },
     { signal: request.signal },
   );
+
+  let output = "";
+  const usage = { input: 0, output: 0 };
+
+  // Saves the generation and its tokens; the quota slot stays used.
+  async function persist() {
+    // Anthropic reports output tokens only at the end of the stream; estimate them for a stopped one.
+    const outputTokens = usage.output || Math.ceil(output.length / 4);
+    try {
+      await insertGeneration(supabase, {
+        user_id: userId,
+        mode: generateRequest.mode,
+        options: toGenerationOptions(generateRequest),
+        input: generateRequest.text,
+        output,
+        model,
+        input_tokens: usage.input,
+        output_tokens: outputTokens,
+      });
+      await recordTokens(userId, quota, usage.input + outputTokens);
+    } catch (error) {
+      // The user already has the result; don't turn a bookkeeping failure into an error.
+      console.error("[api/generate] failed to save generation", error);
+    }
+  }
+
+  async function release() {
+    try {
+      await releaseQuota(userId, quota);
+    } catch (error) {
+      console.error("[api/generate] failed to release quota", error);
+    }
+  }
 
   const encoder = new TextEncoder();
   let cancelled = false;
@@ -75,27 +130,46 @@ export async function POST(request: Request) {
 
       try {
         for await (const event of anthropicStream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          if (event.type === "message_start") {
+            usage.input = event.message.usage.input_tokens;
+          } else if (event.type === "message_delta") {
+            usage.output = event.usage.output_tokens;
+          } else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            output += event.delta.text;
             send({ type: "delta", text: event.delta.text });
           }
         }
 
         const message = await anthropicStream.finalMessage();
         if (message.stop_reason === "refusal") {
+          await release();
           send({
             type: "error",
             error: { code: "refused", message: "The AI declined to process this text." },
           });
+        } else if (!output) {
+          await release();
+          send({
+            type: "error",
+            error: { code: "upstream_error", message: "The AI returned an empty result. Try again." },
+          });
         } else {
-          send({ type: "done", truncated: message.stop_reason === "max_tokens" });
+          // Save before `done`, so history and the counter are current when the client sees it.
+          await persist();
+          send({
+            type: "done",
+            truncated: message.stop_reason === "max_tokens",
+            remaining: quota.remaining,
+          });
         }
-        // Session 3: save the generation and increment usage here (message.usage has token counts).
       } catch (error) {
-        // Client disconnected: nothing to send and nothing to save.
+        // Client stopped: nothing to send. An early stop is refunded; a later one keeps the partial output.
         if (cancelled || request.signal.aborted || error instanceof Anthropic.APIUserAbortError) {
+          await (isEarlyStop(Date.now() - startedAt, output.length) ? release() : persist());
           return;
         }
         console.error("[api/generate] stream failed", error);
+        await release();
         send({ type: "error", error: toApiError(error) });
       } finally {
         if (!cancelled) controller.close();

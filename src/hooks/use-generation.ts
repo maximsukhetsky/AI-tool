@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   errorResponseSchema,
   generateEventSchema,
+  isEarlyStop,
+  type ApiError,
   type GenerateEvent,
   type GenerateRequest,
 } from "@/lib/schemas/generate";
@@ -38,17 +40,21 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Gen
   }
 }
 
-async function readErrorMessage(response: Response) {
+async function readError(response: Response): Promise<ApiError | null> {
   const parsed = errorResponseSchema.safeParse(await response.json().catch(() => null));
-  return parsed.success ? parsed.data.error.message : FALLBACK_ERROR;
+  return parsed.success ? parsed.data.error : null;
 }
 
-export function useGeneration() {
+// `initialRemaining`: generations left today, as rendered by the server.
+export function useGeneration(initialRemaining: number) {
   const [status, setStatus] = useState<GenerationStatus>("idle");
   const [output, setOutput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [lastRequest, setLastRequest] = useState<GenerateRequest | null>(null);
+  const [remaining, setRemaining] = useState(initialRemaining);
+  // Whether the last stopped generation counted against the quota (it does unless stopped early).
+  const [stopCounted, setStopCounted] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
 
   const generate = useCallback(async (request: GenerateRequest) => {
@@ -60,8 +66,12 @@ export function useGeneration() {
     setOutput("");
     setError(null);
     setTruncated(false);
+    setStopCounted(false);
     setStatus("streaming");
 
+    // Mirrors the server's isEarlyStop decision for a stopped generation.
+    const startedAt = Date.now();
+    let receivedLength = 0;
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -71,16 +81,20 @@ export function useGeneration() {
       });
 
       if (!response.ok || !response.body) {
-        setError(await readErrorMessage(response));
+        const apiError = await readError(response);
+        if (apiError?.code === "quota_exceeded") setRemaining(0);
+        setError(apiError?.message ?? FALLBACK_ERROR);
         setStatus("error");
         return;
       }
 
       for await (const event of readEvents(response.body)) {
         if (event.type === "delta") {
+          receivedLength += event.text.length;
           setOutput((previous) => previous + event.text);
         } else if (event.type === "done") {
           setTruncated(event.truncated);
+          setRemaining(event.remaining);
           setStatus("done");
           return;
         } else {
@@ -95,8 +109,13 @@ export function useGeneration() {
       setStatus("error");
     } catch (caught) {
       if (controller.signal.aborted) {
+        const counted = !isEarlyStop(Date.now() - startedAt, receivedLength);
+        if (counted) setRemaining((previous) => Math.max(previous - 1, 0));
         // Only the latest generation updates state; an older one was superseded.
-        if (controllerRef.current === controller) setStatus("stopped");
+        if (controllerRef.current === controller) {
+          setStopCounted(counted);
+          setStatus("stopped");
+        }
         return;
       }
       console.error(caught);
@@ -118,5 +137,16 @@ export function useGeneration() {
   // Cancel an in-flight request when the editor unmounts.
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { status, output, error, truncated, lastRequest, generate, stop, regenerate };
+  return {
+    status,
+    output,
+    error,
+    truncated,
+    stopCounted,
+    lastRequest,
+    remaining,
+    generate,
+    stop,
+    regenerate,
+  };
 }

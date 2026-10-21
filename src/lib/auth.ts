@@ -11,15 +11,15 @@ export type CurrentUser = {
 };
 
 // Verified user for the current request (deduped per render). Redirects to /login if signed out.
+// Uses the locally verified JWT claims (no Auth round-trip); data access is still enforced by RLS.
 export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  if (!user) {
+  if (!claims?.sub) {
     redirect("/login");
   }
 
-  return { id: user.id, email: user.email ?? null };
+  return { id: claims.sub, email: claims.email ?? null };
 });

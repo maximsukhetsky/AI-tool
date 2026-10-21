@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import { CheckIcon } from "lucide-react";
+import { useState } from "react";
+
 import { Input } from "@/components/ui/input";
 import { MAX_TARGET_LANGUAGE_LENGTH } from "@/lib/schemas/generate";
 

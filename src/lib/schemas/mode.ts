@@ -22,6 +22,9 @@ export const TONES = [
   "empathetic",
 ] as const satisfies readonly DbEnums["tone"][];
 
+// Modes that rewrite the text in place; the editor says so when they barely changed it.
+export const MINOR_CHANGE_NOTICE_MODES = ["improve", "tone"] as const satisfies readonly Mode[];
+
 export const modeSchema = z.enum(MODES);
 export const toneSchema = z.enum(TONES);
 

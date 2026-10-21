@@ -37,10 +37,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Don't run code between createServerClient and getUser: it can cause random logouts.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Don't run code between createServerClient and getClaims: it can cause random logouts.
+  // getClaims verifies the JWT locally against the cached JWKS (ES256 signing keys), so the
+  // proxy doesn't add an Auth round-trip to every navigation; it still refreshes expired sessions.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims.sub ? data.claims : null;
 
   const { pathname } = request.nextUrl;
 
