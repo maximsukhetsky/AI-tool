@@ -16,6 +16,10 @@ import { toGenerationOptions } from "@/lib/schemas/history";
 import { createClient } from "@/lib/supabase/server";
 import { consumeQuota, recordTokens, releaseQuota, type QuotaReservation } from "@/lib/usage";
 
+// Runs on the default Node.js runtime (Cache Components doesn't allow a `runtime` export).
+// The longest mode (16k output tokens) can stream for several minutes; 300 s is the Vercel Hobby cap.
+export const maxDuration = 300;
+
 function errorResponse(status: number, error: ApiError) {
   return NextResponse.json({ error }, { status });
 }

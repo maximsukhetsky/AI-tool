@@ -66,7 +66,41 @@ pnpm build
 
 ## Deployment
 
-TBD: Vercel deployment and CI are planned in session 5 (see the PRD).
+Production: <https://ai-tool-psi-ruddy.vercel.app>
+
+### CI
+
+`.github/workflows/ci.yml` runs `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck` and `pnpm build` on every PR and every push to `main`. The build uses dummy public Supabase values; no real secrets are stored in GitHub. Branch protection on `main` requires the CI check to pass before merging.
+
+### Vercel
+
+The project is connected to the GitHub repository: every push to `main` deploys to production, and every PR gets a preview deployment.
+
+Set the environment variables in **Project → Settings → Environment Variables** for both **Production** and **Preview**:
+
+| Variable | Vercel type |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Config (public by design, inlined into the browser bundle) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Config (public by design; data is protected by RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Sensitive |
+| `ANTHROPIC_API_KEY` | Sensitive |
+| `ANTHROPIC_MODEL` | Config |
+
+Vercel warns about the `NEXT_PUBLIC_` prefix when a variable is marked sensitive. For the two Supabase public values this is expected: pick **Config**. Never add the prefix to the service-role or Anthropic keys. Redeploy after changing variables.
+
+`/api/generate` runs on the Node.js runtime with `maxDuration = 300` and streams SSE with `Cache-Control: no-cache, no-transform`, so responses are not buffered.
+
+### Supabase Auth and Google OAuth
+
+In **Authentication → URL Configuration**:
+
+- Site URL: `https://ai-tool-psi-ruddy.vercel.app`
+- Redirect URLs:
+  - `https://ai-tool-psi-ruddy.vercel.app/callback`
+  - `https://ai-tool-*-maxim-sukhetsky.vercel.app/callback` (preview deployments)
+  - `http://localhost:3000/callback`
+
+In Google Cloud Console, the OAuth client's authorized redirect URI is the Supabase callback, `https://<project-ref>.supabase.co/auth/v1/callback`; it doesn't change per environment.
 
 ## Known gaps
 
