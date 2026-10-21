@@ -30,13 +30,16 @@ export async function getPreferences(supabase: Client, userId: string): Promise<
 }
 
 export async function updatePreferences(supabase: Client, userId: string, preferences: Preferences) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .update({
       default_mode: preferences.defaultMode,
       default_target_language: preferences.defaultTargetLanguage,
       default_tone: preferences.defaultTone,
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id");
   if (error) throw error;
+  // The profile is created by a trigger on sign-up; a missing row must not look like a successful save.
+  if (data.length === 0) throw new Error(`[profiles] no profile row for user ${userId}`);
 }
