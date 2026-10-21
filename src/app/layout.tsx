@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Writing Tool",
+  title: {
+    default: "AI Writing Tool",
+    template: "%s · AI Writing Tool",
+  },
   description: "Rewrite, translate and polish text with Claude.",
+  // Every page sits behind sign-in, so there is nothing for search engines to index.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

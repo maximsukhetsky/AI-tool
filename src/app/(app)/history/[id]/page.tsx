@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { GenerationDetail } from "@/components/history/GenerationDetail";
+
+// Static on purpose: a per-generation title would cost an extra database query.
+export const metadata: Metadata = {
+  title: "Generation",
+};
 
 export default function GenerationPage({ params }: PageProps<"/history/[id]">) {
   return (
