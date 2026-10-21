@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Writing Tool",
-    template: "%s · AI Writing Tool",
+    default: "Writing AI Tool",
+    template: "%s · Writing AI Tool",
   },
   description: "Rewrite, translate and polish text with Claude.",
   // Every page sits behind sign-in, so there is nothing for search engines to index.

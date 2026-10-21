@@ -1,4 +1,4 @@
-# PRD: AI text tool (MVP)
+# PRD: Writing AI Tool (MVP)
 
 Technical context lives in `/CLAUDE.md`: stack, architecture, rules. This document defines **what** we build; CLAUDE.md defines **how**.
 

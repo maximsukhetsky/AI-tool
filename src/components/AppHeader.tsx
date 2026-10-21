@@ -13,7 +13,7 @@ export function AppHeader() {
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
             <Logo />
-            <span className="sr-only sm:not-sr-only">AI Writing Tool</span>
+            <span className="sr-only sm:not-sr-only">Writing AI Tool</span>
           </Link>
           <Suspense fallback={<NavLinks />}>
             <AppNav />
