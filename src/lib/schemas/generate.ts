@@ -4,6 +4,19 @@ import { toneSchema } from "@/lib/schemas/mode";
 
 export const MAX_INPUT_LENGTH = 10_000;
 export const MAX_TARGET_LANGUAGE_LENGTH = 64;
+// Generations per user per UTC day.
+export const DAILY_GENERATION_LIMIT = 20;
+
+// A generation stopped within the grace period or before this much output is
+// neither saved nor counted (e.g. the user picked the wrong mode).
+export const STOP_GRACE_PERIOD_MS = 3_000;
+export const STOP_GRACE_MAX_CHARS = 100;
+
+// Shared by the server (decides) and the client (mirrors the decision, since an
+// aborted request can't receive the server's answer).
+export function isEarlyStop(elapsedMs: number, outputLength: number) {
+  return elapsedMs < STOP_GRACE_PERIOD_MS || outputLength < STOP_GRACE_MAX_CHARS;
+}
 
 const textSchema = z
   .string()
@@ -60,7 +73,8 @@ export const errorResponseSchema = z.object({ error: apiErrorSchema });
 // SSE payloads sent by /api/generate, one JSON object per `data:` line.
 export const generateEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("delta"), text: z.string() }),
-  z.object({ type: z.literal("done"), truncated: z.boolean() }),
+  // `remaining`: generations left today after this one.
+  z.object({ type: z.literal("done"), truncated: z.boolean(), remaining: z.number().int().min(0) }),
   z.object({ type: z.literal("error"), error: apiErrorSchema }),
 ]);
 

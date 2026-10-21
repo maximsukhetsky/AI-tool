@@ -164,7 +164,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_usage_tokens: {
+        Args: { p_period: string; p_tokens: number; p_user_id: string }
+        Returns: undefined
+      }
+      consume_quota: {
+        Args: { p_limit: number; p_user_id: string }
+        Returns: {
+          period: string
+          request_count: number
+        }[]
+      }
+      release_quota: {
+        Args: { p_period: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       tone: "formal" | "casual" | "friendly" | "confident" | "empathetic"

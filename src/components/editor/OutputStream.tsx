@@ -5,12 +5,16 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { GenerationStatus } from "@/hooks/use-generation";
+import type { ChangeLevel } from "@/lib/text-similarity";
 
 type OutputStreamProps = {
   status: GenerationStatus;
   output: string;
   error: string | null;
   truncated: boolean;
+  stopCounted: boolean;
+  // Set for in-place rewrites (improve, tone) once the generation is done.
+  changeLevel: ChangeLevel | null;
   canRegenerate: boolean;
   onRegenerate: () => void;
 };
@@ -20,6 +24,8 @@ export function OutputStream({
   output,
   error,
   truncated,
+  stopCounted,
+  changeLevel,
   canRegenerate,
   onRegenerate,
 }: OutputStreamProps) {
@@ -91,7 +97,17 @@ export function OutputStream({
         </p>
       )}
       {status === "stopped" && (
-        <p className="text-sm text-muted-foreground">Generation stopped.</p>
+        <p className="text-sm text-muted-foreground">
+          {stopCounted
+            ? "Stopped. The partial result was saved to history and counts toward today's limit."
+            : "Stopped early. This generation doesn't count toward your limit."}
+        </p>
+      )}
+      {changeLevel === "none" && (
+        <p className="text-sm text-muted-foreground">No changes needed. Your text already reads well.</p>
+      )}
+      {changeLevel === "minor" && (
+        <p className="text-sm text-muted-foreground">Only minor changes. Your text was already in good shape.</p>
       )}
       {status === "done" && truncated && (
         <p className="text-sm text-muted-foreground">
