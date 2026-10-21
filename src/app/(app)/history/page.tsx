@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { HistoryList } from "@/components/history/HistoryList";
 import { HistoryListSkeleton } from "@/components/history/HistoryListSkeleton";
+
+export const metadata: Metadata = {
+  title: "History",
+};
 
 export default function HistoryPage({ searchParams }: PageProps<"/history">) {
   return (

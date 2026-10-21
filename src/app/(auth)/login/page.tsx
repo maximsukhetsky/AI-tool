@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { signInWithEmail, signInWithGoogle } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Sign in · AI Writing Tool",
+  title: "Sign in",
 };
 
 export default function LoginPage() {

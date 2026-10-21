@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { EditorLoader } from "@/components/editor/EditorLoader";
 import { EditorSkeleton } from "@/components/editor/EditorSkeleton";
+
+export const metadata: Metadata = {
+  title: "Editor",
+};
 
 export default function EditorPage({ searchParams }: PageProps<"/">) {
   return (

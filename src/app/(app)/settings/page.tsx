@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { SettingsLoader } from "@/components/settings/SettingsLoader";
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
+
+export const metadata: Metadata = {
+  title: "Settings",
+};
 
 export default function SettingsPage() {
   return (
